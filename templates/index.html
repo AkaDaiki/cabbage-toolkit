@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- import CSS -->
+  <link rel="stylesheet" href="element-ui/css/index.css">
+  <link rel="stylesheet" type="text/css" href="file-explorer/file-explorer.css">
+  <!-- steamdeck scale 1280x800 -->
+  <style type="text/css">
+    .el-header {
+      background-color: #B3C0D1;
+      color: #333;
+      text-align: center;
+      line-height: 60px;
+      max-width: 1080px;
+    }
+    .el-footer {
+      /*background-color: #B3C0D1;*/
+      /*color: #333;*/
+      text-align: right;
+      /*line-height: 12px;*/
+    }
+
+    .el-aside {
+      /*background-color: #D3DCE6;*/
+      color: #333;
+      text-align: center;
+      /*line-height: 580px;*/
+    }
+
+    .el-main {
+      background-color: #E9EEF3;
+      color: #333;
+      text-align: center;
+      max-width: 540px;
+      /*line-height: 160px;*/
+    }
+
+    body > .el-container {
+      margin-bottom: 40px;
+      min-height: 580px;
+    }
+
+    /*.el-container:nth-child(5) .el-aside,*/
+    /*.el-container:nth-child(6) .el-aside {*/
+      /*line-height: 260px;*/
+    /*}*/
+
+    /*.el-container:nth-child(7) .el-aside {*/
+      /*line-height: 320px;*/
+    /*}*/
+
+
+    .text {
+      font-size: 14px;
+    }
+
+    .item {
+      /*margin-bottom: 18px;*/
+
+    }
+
+    .clearfix:before,
+    .clearfix:after {
+      display: table;
+      content: "";
+    }
+    .clearfix:after {
+      clear: both
+    }
+
+    .box-card {
+      max-width: 480px;
+    }
+
+    .el-button {
+      margin-bottom: 12px;
+    }
+
+    html.embed, html.embed body { padding: 0; margin: 0; }
+    html.embed p { padding: 0; margin: 0; display: none; }
+
+    #filemanager { height: 50vh; max-height: 400px; position: relative; }
+    html.embed #filemanager { height: 100vh; }
+    .fe_fileexplorer_folder_tools_scroll_wrap {
+        display: none;
+    }
+
+    .file-selector  .el-dialog__body{
+        padding: 10px;
+    }
+    .file-selector  .el-dialog__header {
+        padding: 10px 10px 0px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="background-color: #E9EEF3">
+
+
+    <el-container
+        v-loading="pageLoading"
+        :element-loading-text="pageLoadingText"
+        element-loading-spinner="el-icon-loading"
+        element-loading-background="rgba(0, 0, 0, 0.8)"
+    >
+      <el-header  style="display: flex;justify-content: space-between;  font-size: 12px">
+          <div style="width: 30%;text-align: left">
+              <span style="font-size: 18px;font-weight: bolder">大白菜工具箱{{ appSetting.version }}</span>
+              &nbsp;&nbsp;&nbsp;<a href="#" @click="onEnterAuthorHomeSite" style="color: #6e3ac2">作者B站点首页</a>
+          </div>
+          <div style="width: 70%;text-align: right;">
+              <span>请选择:</span>
+              <el-select @change="onChangeWindows" v-model="main_windows" placeholder="请选择">
+                  <el-option
+                          v-for="item in options"
+                          :key="item.value"
+                          :label="item.label"
+                          :value="item.value">
+                  </el-option>
+              </el-select>
+          </div>
+
+      </el-header>
+      <el-container  v-if="main_windows=='1'">
+        <el-aside width="200px" style="height:580px;width: 220px">
+          <el-menu :default-openeds="['1']">
+            <el-submenu index="1">
+              <template slot="title"><i class="el-icon-arrow-down"></i>Proton游戏列表</template>
+
+              <el-menu-item  v-for="(item,index) in gameList" @click="onClickGameItem(item)" :index="(index+1).toString()" class="text item" style="padding-left: 0px;">
+                {{item.name}}
+              </el-menu-item >
+
+            </el-submenu>
+          </el-menu>
+        </el-aside>
+        <el-main>
+          <div style="text-align: left">
+            <p> {{!currentGame.id ? '未选择游戏':currentGame.name}}</p>
+          </div>
+          <el-divider></el-divider>
+          <el-card class="box-card" style="text-align: left">
+            <div slot="header" class="clearfix">
+              <span>打补丁功能</span>
+              <!--<el-button type="success" plain style="float: right; padding: 3px 0" type="text">操作按钮</el-button>-->
+            </div>
+
+            <el-row>
+              <el-button type="success" plain @click="onRunWindowsApp('exe')">选择exe并运行</el-button>
+              <el-button type="success" plain @click="onRunWindowsApp('bat')">选择bat并运行</el-button>
+              <el-button type="success" plain @click="onShowStorageChoice('openDiskC_Path')" >打开C盘位置</el-button>
+              <el-button v-if="currentGame.nonSteam=='0'" type="success" plain @click="onShowStorageChoice('openGameInstallPath')" >打开游戏安装目录</el-button>
+            </el-row>
+          </el-card>
+
+          <el-divider></el-divider>
+          <el-card class="box-card" style="text-align: left">
+            <div slot="header" class="clearfix">
+              <span>windows功能</span>
+              <!--<el-button type="success" plain style="float: right; padding: 3px 0" type="text">操作按钮</el-button>-->
+            </div>
+            <el-row>
+              <el-button type="success" plain @click="onHelperGeneralOpen('openTaskMgr')" >任务管理器</el-button>
+              <el-button type="success" plain @click="onHelperGeneralOpen('openRegedit')" >注册表</el-button>
+              <el-button type="success" plain @click="onHelperGeneralOpen('openWineCfg')" >wine设置</el-button>
+              <el-button type="success" plain @click="onHelperGeneralOpen('openExplorer')" >浏览文件</el-button>
+            </el-row>
+          </el-card>
+          <el-divider></el-divider>
+          <div style="text-align: left;font-size: 10px;color: #777;">
+            <p>Tips:</p>
+            <p>1. 若有游戏没在游戏列表显示, 在steam客户端，点击游戏属性，强制设置Proton兼容层版本，运行一下</p>
+          </div>
+        </el-main>
+
+        <el-aside style="min-width: 320px;padding:20px;background-color: #E9EEF3">
+          <p>游戏信息:</p>
+          <el-divider></el-divider>
+          <div style="text-align: left">
+            <p>游戏id: {{currentGame.id}}</p>
+            <p>游戏类型: {{currentGame.nonSteam ? '非Steam游戏' : 'Steam游戏'}}</p>
+          </div>
+        </el-aside>
+      </el-container>
+
+        <!-- 多开exe -->
+      <el-container  v-if="main_windows=='2'">
+            <el-aside width="200px" style="height:580px;width: 220px">
+              <el-menu :default-openeds="['1']">
+                  <el-submenu index="1">
+                      <template slot="title"><i class="el-icon-arrow-down"></i>游戏列表</template>
+
+                      <el-menu-item  v-for="(item,index) in gameListAll" @click="onClickMultiExeGameItem(item)" :index="(index+1).toString()" class="text item" style="padding-left: 0px;">
+                          {{item.name}}
+                      </el-menu-item >
+
+                  </el-submenu>
+              </el-menu>
+            </el-aside>
+            <el-main>
+                <div style="text-align: left">
+                    <p> {{!geGameOptionValue ? '未选择游戏':multiExeGame.name}}</p>
+                </div>
+                <el-divider></el-divider>
+                <el-card class="box-card" style="text-align: left">
+                    <div slot="header" class="clearfix">
+                        <!-- <el-select @change="onChangeGeProtonGame"  v-model="geGameOptionValue" placeholder="请选择游戏">
+                            <el-option
+                                    v-for="item in geGameOptions"
+                                    :key="item.value"
+                                    :label="item.label"
+                                    :value="item.value">
+                            </el-option>
+                        </el-select>-->
+                        <span>游戏开启时同时启动:</span>
+                        <!--<el-button type="success" plain style="float: right; padding: 3px 0" type="text">操作按钮</el-button>-->
+                    </div>
+                    <el-row v-if="geGameOptionValue!=''">
+                        <el-button type="success" plain @click="updateGeProtonAttachGame(true)">{{!!geGameOptionConf.WINE_EXTRA_EXE ? '编辑' : '添加'}}附加exe</el-button>
+                        <el-button type="success" plain @click="updateGeProtonTaskmgr(true)">{{geGameOptionConf.WINE_TASKMGR == '1' ? '关闭' : '启动'}}任务管理器</el-button>
+                        <el-button type="success" plain @click="updateGeProtonCheat('CheatEngine', true)">{{geGameOptionConf.WINE_CHEATENGINE == '1' ? '关闭' : '启动'}}CE修改器</el-button>
+                        <el-button type="success" plain @click="updateGeProtonCheat('FLiNGTrainer', true)">{{geGameOptionConf.WINE_FLINGTRAINER == '1' ? '关闭' : '启动'}}风灵月影</el-button>
+                    </el-row>
+                </el-card>
+
+                <el-divider></el-divider>
+                <div style="text-align: left;font-size: 10px;color: #777;">
+                    <p>Tips:</p>
+                    <p>1. 该多开exe方式使用了修改游戏'启动选项'的方式, 支持社区版GE-Proton兼容层与官方版Proton兼容层</p>
+                    <p>2. 该方式会修改游戏的'启动选项', 请在操作前备份好'启动选项'上的配置</p>
+                    <p>3. 若在游戏模式下无法切换窗口, 尝试在游戏模式的'设置'下开启'开发者模式'</p>
+                </div>
+
+            </el-main>
+
+            <el-aside style="min-width: 320px;padding:20px;background-color: #E9EEF3">
+                <p style="text-align: left;font-weight: bolder;">游戏信息:</p>
+                <el-divider></el-divider>
+                <div style="text-align: left">
+                    <p>游戏id: {{!!multiExeGame.id ? multiExeGame.id : ''}}</p>
+                </div>
+                <div v-if="geGameOptionValue!=''">
+                    <br/>
+                    <p style="text-align: left;font-weight: bolder;">游戏设置状态:</p>
+                    <el-divider></el-divider>
+                    <div style="text-align: left">
+                        <p>游戏启动时打开任务管理器: {{geGameOptionConf.WINE_TASKMGR == '1' ? '是' : '否'}}</p>
+                        <p style="word-break:break-word">游戏启动时打开以下程序: {{geGameOptionConf.WINE_EXTRA_EXE ? geGameOptionConf.WINE_EXTRA_EXE : ''}}</p>
+                        <p>游戏启动时打开CE修改器: {{geGameOptionConf.WINE_CHEATENGINE == '1' ? '是' : '否'}}</p>
+                        <p>游戏启动时打开风灵月影: {{geGameOptionConf.WINE_FLINGTRAINER == '1' ? '是' : '否'}}</p>
+                    </div>
+                </div>
+            </el-aside>
+        </el-container>
+      <!-- 兼容层补丁 -->
+      <el-container  v-if="main_windows=='3'">
+        <el-aside width="200px" style="height:580px;width: 220px">
+          <el-menu :default-openeds="['1']">
+
+            <el-submenu index="1">
+              <template slot="title"><i class="el-icon-arrow-down"></i>GE-Proton兼容层列表</template>
+              <el-menu-item  v-for="(item,index) in geProtonList" @click="onClickGeProtonItem(item)" :index="(index+1).toString()" class="text item" style="padding-left: 0px;">
+                {{item.name}}
+              </el-menu-item >
+            </el-submenu>
+
+          </el-menu>
+        </el-aside>
+        <el-main>
+          <div style="text-align: left">
+            <p> {{!currentGeProton.name ? '未选择兼容层':currentGeProton.name}}</p>
+          </div>
+          <el-divider></el-divider>
+          <el-card class="box-card" style="text-align: left">
+            <div slot="header" class="clearfix">
+              <span>多开exe补丁</span>
+              <!--<el-button type="success" plain style="float: right; padding: 3px 0" type="text">操作按钮</el-button>-->
+            </div>
+
+            <el-row>
+              <el-button type="success" plain @click="onGeProtonGeneralFunc('makeGeProtonPatch')">打补丁</el-button>
+              <el-button type="success" plain @click="onGeProtonGeneralFunc('revertGeProtonPatch')">复原补丁</el-button>
+            </el-row>
+          </el-card>
+
+          <el-divider></el-divider>
+          <el-card class="box-card" style="text-align: left">
+            <div slot="header" class="clearfix">
+              <el-select @change="onChangeGeProtonGame"  v-model="geGameOptionValue" placeholder="请选择游戏">
+                <el-option
+                        v-for="item in geGameOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value">
+                </el-option>
+              </el-select>
+              <span>游戏开启时同时启动:</span>
+              <!--<el-button type="success" plain style="float: right; padding: 3px 0" type="text">操作按钮</el-button>-->
+            </div>
+            <el-row v-if="geGameOptionValue!=''">
+              <el-button type="success" plain @click="updateGeProtonAttachGame">{{!!geGameOptionConf.WINE_EXTRA_EXE ? '编辑' : '添加'}}附加exe</el-button>
+              <el-button type="success" plain @click="updateGeProtonTaskmgr">{{geGameOptionConf.WINE_TASKMGR == '1' ? '关闭' : '启动'}}任务管理器</el-button>
+              <el-button type="success" plain @click="updateGeProtonCheat('CheatEngine')">{{geGameOptionConf.WINE_CHEATENGINE == '1' ? '关闭' : '启动'}}CE修改器</el-button>
+              <el-button type="success" plain @click="updateGeProtonCheat('FLiNGTrainer')">{{geGameOptionConf.WINE_FLINGTRAINER == '1' ? '关闭' : '启动'}}风灵月影</el-button>
+            </el-row>
+          </el-card>
+
+            <el-divider></el-divider>
+            <div style="text-align: left;font-size: 10px;color: #777;">
+                <p>Tips:</p>
+                <p>1. 若有兼容层列表没显示, 请手动下载GE-Proton到.local/share/Steam/compatibilitytools.d下</p>
+                <p>2. 若安装了汉化补丁，将导致兼容层列表无法显示，请在桌面模式将系统语言改成'英文'</p>
+                <p>3. 在游戏属性中, 记得选择打了补丁的GE-Proton兼容层来运行游戏</p>
+            </div>
+
+        </el-main>
+
+        <el-aside style="min-width: 320px;padding:20px;background-color: #E9EEF3">
+          <p style="text-align: left;font-weight: bolder;">兼容层信息:</p>
+          <el-divider></el-divider>
+          <div style="text-align: left">
+            <p>补丁版本: {{!!currentGeProton.version ? currentGeProton.version : '未打补丁'}}</p>
+            <p>存储位置: {{currentGeProton.path}}</p>
+          </div>
+          <div v-if="geGameOptionValue!=''">
+            <br/>
+            <p style="text-align: left;font-weight: bolder;">游戏设置状态:</p>
+            <el-divider></el-divider>
+            <div style="text-align: left">
+              <p>游戏启动时打开任务管理器: {{geGameOptionConf.WINE_TASKMGR == '1' ? '是' : '否'}}</p>
+              <p style="word-break:break-word">游戏启动时打开以下程序: {{geGameOptionConf.WINE_EXTRA_EXE ? geGameOptionConf.WINE_EXTRA_EXE : ''}}</p>
+              <p>游戏启动时打开CE修改器: {{geGameOptionConf.WINE_CHEATENGINE == '1' ? '是' : '否'}}</p>
+              <p>游戏启动时打开风灵月影: {{geGameOptionConf.WINE_FLINGTRAINER == '1' ? '是' : '否'}}</p>
+            </div>
+          </div>
+        </el-aside>
+      </el-container>
+      <!-- 软件中心 -->
+      <el-container  v-if="main_windows=='4'">
+          <div style="display: flex; flex-direction: column">
+              <!-- type="border-card"  -->
+             <el-tabs tab-position="left" style="width: 100%">
+              <el-tab-pane label="系统工具">
+                  <!--列表-->
+                  <el-table size="small" :data="appSetting.necessary_tools" highlight-current-row border >
+                      <el-table-column sortable prop="deptName" label="软件图标" align="center" min-width="120">
+                          <template v-if="scope.row.icon"  width="70" slot-scope="scope">
+                              <img   style="width:60px;height:60px;border:none;" :src="scope.row.icon">
+                          </template>
+                      </el-table-column>
+                      <el-table-column sortable prop="editTime" label="简介" width="484">
+                          <template slot-scope="scope">
+                              <p>软件名称:{{ scope.row.name }}</p>
+                              <p>简介:{{ scope.row.introduce }}</p>
+                          </template>
+                      </el-table-column>
+                      <el-table-column align="center" label="操作" min-width="340">
+                          <template slot-scope="scope">
+                              <template v-if="scope.row.install_way=='ARCHIVE_DECOMPRESSION'">
+                                  <el-button size="mini" type="danger" @click="onSystemToolsDownload(scope.$index, scope.row)">下载</el-button>
+                                  <el-button size="mini" @click="onArchiveInstallFromDownloadPath(scope.$index, scope.row, 1)">从下载目录安装</el-button>
+                                  <el-button size="mini"  @click="onSystemToolsShowPath(scope.$index, scope.row)">打开安装目录</el-button>
+                              </template>
+                              <template v-if="scope.row.install_way=='LINUX_SCRIPT'">
+                                  <el-button size="mini" type="danger" @click="onSystemToolsInstall(scope.$index, scope.row)">安装</el-button>
+                                  <el-button size="mini" @click="onSystemToolsStatus(scope.$index, scope.row)">软件状态</el-button>
+                              </template>
+                          </template>
+                      </el-table-column>
+                  </el-table>
+              </el-tab-pane>
+              <el-tab-pane label="windows软件">
+                  <!--列表-->
+                  <el-table size="small" :data="appSetting.windows_app" highlight-current-row border >
+                      <el-table-column sortable prop="deptName" label="软件图标" align="center" min-width="120">
+                          <template v-if="scope.row.icon"  width="70" slot-scope="scope">
+                              <img   style="width:60px;height:60px;border:none;" :src="scope.row.icon">
+                          </template>
+                      </el-table-column>
+                      <el-table-column sortable prop="editTime" label="简介" width="484">
+                          <template slot-scope="scope">
+                              <p>软件名称:{{ scope.row.name }}</p>
+                              <p>简介:{{ scope.row.introduce }}</p>
+                          </template>
+                      </el-table-column>
+                      <el-table-column align="center" label="操作" min-width="340">
+                          <template slot-scope="scope">
+                              <el-button size="mini" type="danger" @click="onSoftwareDownload(scope.$index, scope.row)">下载</el-button>
+                              <el-button size="mini" @click="onArchiveInstallFromDownloadPath(scope.$index, scope.row)">从下载目录安装</el-button>
+                              <el-button size="mini"  @click="onSoftwareShowPath(scope.$index, scope.row)">打开安装目录</el-button>
+                          </template>
+                      </el-table-column>
+                  </el-table>
+              </el-tab-pane>
+          </el-tabs>
+              <div style="text-align: left;font-size: 10px;color: #777;">
+                  <p>Tips:</p>
+                  <p>1. 下载的软件都要放置到用户下载目录(Downloads)下，不然无法扫描安装</p>
+              </div>
+          </div>
+
+      </el-container>
+      <!-- 缓存清理 -->
+      <el-container  v-if="main_windows=='5'">
+            <div style="display: flex; flex-direction: column">
+                <!-- type="border-card"  -->
+                <el-tabs v-model="cacheTabActiveName"  @tab-click="onHandleCacheTapChange" tab-position="left" style="width: 100%">
+                    <div style="margin-top: 10px;margin-bottom: 10px;">
+                        <el-checkbox @change="onChangeCacheCheckbox" ref="shaderOnlyDeletedCheckbox" v-model="shaderOnlyDeleted" :disabled="onlyDeletedDisabled">仅显示已在steam客户端删除的游戏</el-checkbox>
+                    </div>
+                    <el-tab-pane label="着色器缓存" name="shaderCache">
+                        <!--列表-->
+                        <el-table
+                                ref="multipleTable"
+                                size="small"
+                                :data="gameCache.shaderCache" highlight-current-row border
+                                tooltip-effect="dark"
+                                style="width: 100%"
+                                @selection-change="handleSelectionChange">
+                            <el-table-column
+                                    type="selection"
+                                    width="55">
+                            </el-table-column>
+                            <el-table-column
+                                    label="大小(MB)"
+                                    width="80">
+                                <template slot-scope="scope">{{ scope.row.size }}</template>
+                            </el-table-column>
+                            <el-table-column
+                                    prop="gameId"
+                                    label="游戏ID"
+                                    width="100">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="gameName"
+                                    label="游戏名称"
+                                    width="120">
+                            </el-table-column>
+                            <el-table-column
+                                    label="类型"
+                                    width="120">
+                                <template slot-scope="scope">{{ (scope.row.nonSteam==null) ? '': (scope.row.nonSteam==1 ? '非steam游戏' : 'steam游戏') }}</template>
+                            </el-table-column>
+                            <el-table-column
+                                    prop="path"
+                                    label="存储位置"
+                                    width="400">
+                            </el-table-column>
+
+                        </el-table>
+                        <div style="margin-top: 20px">
+                            <el-button @click="onConfirmCleanCache()">清除缓存</el-button>
+                        </div>
+
+                    </el-tab-pane>
+                    <el-tab-pane label="兼容层缓存" name="compatdata">
+                        <!--列表-->
+                        <el-table
+                                ref="multipleTable"
+                                size="small"
+                                :data="gameCache.compatdata" highlight-current-row border
+                                tooltip-effect="dark"
+                                style="width: 100%"
+                                @selection-change="handleSelectionChange">
+                            <el-table-column
+                                    type="selection"
+                                    width="55">
+                            </el-table-column>
+                            <el-table-column
+                                    label="大小(MB)"
+                                    width="80">
+                                <template slot-scope="scope">{{ scope.row.size }}</template>
+                            </el-table-column>
+                            <el-table-column
+                                    prop="gameId"
+                                    label="游戏ID"
+                                    width="100">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="gameName"
+                                    label="游戏名称"
+                                    width="120">
+                            </el-table-column>
+                            <el-table-column
+                                    label="类型"
+                                    width="120">
+                                <template slot-scope="scope">{{ (scope.row.nonSteam==null) ? '': (scope.row.nonSteam==1 ? '非steam游戏' : 'steam游戏') }}</template>
+                            </el-table-column>
+                            <el-table-column
+                                    prop="path"
+                                    label="存储位置"
+                                    width="400">
+                            </el-table-column>
+
+                        </el-table>
+                        <div style="margin-top: 20px">
+                            <el-button @click="onConfirmCleanCache()">清除缓存</el-button>
+                        </div>
+                    </el-tab-pane>
+                </el-tabs>
+                <div style="text-align: left;font-size: 10px;color: #777;">
+                    <p>Tips:</p>
+                    <p>1. 该功能可以清除已在steam客户端中删除的游戏缓存；</p>
+                    <p>2. 清理缓存文件可能带来重要数据丢失的风险，开发者不对可能导致的风险负责，请自行斟酌。</p>
+                </div>
+            </div>
+
+        </el-container>
+      <el-footer></el-footer>
+    </el-container>
+
+
+    <!-- 兼容层补丁 -->
+    <el-dialog
+            title="提示"
+            :visible.sync="storageDialogVisible"
+            width="30%">
+      <span>这个游戏是否安装在SD卡上?</span>
+        <span slot="footer" class="dialog-footer">
+        <el-button type="success" plain @click="onConfirmStorageChoice(false)">否</el-button>
+        <el-button type="success" plain type="primary" @click="onConfirmStorageChoice(true)">是</el-button>
+      </span>
+    </el-dialog>
+
+      <!-- 选择匹配的安装软件列表 -->
+      <el-dialog title="选择要安装的软件" :visible.sync="softwareDialogVisible" width="30%">
+          <el-form label-width="80px">
+              <el-form-item label="选择软件" prop="gender">
+                  <el-select v-model="softwareDialogOptionsValue" placeholder="请选择">
+                      <el-option
+                              v-for="item in softwareDialogOptions"
+                              :key="item.value"
+                              :label="item.label"
+                              :value="item.value">
+                      </el-option>
+                  </el-select>
+              </el-form-item>
+          </el-form>
+          <div slot="footer" class="dialog-footer">
+              <el-button size="small">取消</el-button>
+              <el-button size="small" type="primary"  class="title" @click="onConfirmInstallSoftware">安装</el-button>
+          </div>
+      </el-dialog>
+
+      <!-- 文件选择框 -->
+      <el-dialog
+              class="file-selector"
+              @opened="onBeforeFileSelectorOpen"
+              @close="onFileSelectorClose"
+              title="文件选择"
+              :visible.sync="fileSelectorDialogVisible"
+              width="80%">
+          <p>所选文件:{{fileSelectorValue}}</p>
+          <div id="filemanager"></div>
+          <span slot="footer" class="dialog-footer">
+            <el-button type="success" plain @click="onConfirmFileChoice(false)">取消</el-button>
+            <el-button type="success" plain type="primary" @click="onConfirmFileChoice(true)">确定</el-button>
+          </span>
+      </el-dialog>
+  </div>
+
+</body>
+  <script src="axios/axios.min.js"></script>
+  <!-- import Vue before Element -->
+  <script src="vue/vue.js"></script>
+  <!-- import JavaScript -->
+  <script src="element-ui/js/index.js"></script>
+  <script type="text/javascript" src="file-explorer/file-explorer.js"></script>
+<script src="common.js?v=1.3.4"></script>
+<script src="main.js?v=1.3.4"></script>
+</html>
