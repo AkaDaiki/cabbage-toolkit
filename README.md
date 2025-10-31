@@ -4,8 +4,9 @@
 这个一个主要在steamdeck上使用的工具集合，该软件封装了protontricks使用与GE-Proton打exe补丁的工具集合软件，提供友好，汉化的用户界面。
 
 
-更新说明：需要感谢原作者大白菜steamdeck（https://gitee.com/cabbage-v50-steamdeck）的创作。
-因停更故做此版本更新，解决了在新版SteamOS无法运行以及解除中文环境使用的限制。
+更新说明：需要感谢原作者大白菜steamdeck大佬的创作。（https://gitee.com/cabbage-v50-steamdeck）
+
+因大佬停更故做此版本更新，解决了在新版SteamOS无法运行以及解除中文环境使用的限制，请自测有无异常。
 
 
 #### 软件架构
