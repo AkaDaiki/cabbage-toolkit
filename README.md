@@ -1,7 +1,9 @@
 # cabbage-toolkit
 
 #### 介绍
-这个一个主要在steamdeck上使用的工具集合，该软件封装了protontricks使用与GE-Proton打exe补丁的工具集合软件，提供友好，汉化的用户界面
+这个一个主要在steamdeck上使用的工具集合，该软件封装了protontricks使用与GE-Proton打exe补丁的工具集合软件，提供友好，汉化的用户界面。
+更新说明：需要感谢原作者#大白菜steamdeck（https://gitee.com/cabbage-v50-steamdeck）的创作，因停更故做此版本更新，解决了在新版SteamOS无法运行以及解除中文环境使用的限制。
+
 
 #### 软件架构
 1. 软件界面使用vue+element-UI开发;
@@ -21,7 +23,7 @@
 
 1.  在konsole等终端应用中执行以下代码
 ```bash
-curl -s https://gitee.com/cabbage-v50-steamdeck/cabbage-toolkit/raw/master/install/cmdline_installer.sh | bash
+curl -s https://raw.githubusercontent.com/AkaDaiki/cabbage-toolkit/master/install/cmdline_installer.sh | bash
 ```
 之后会创建一个大白菜工具箱的桌面应用
 
